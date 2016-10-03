@@ -27,7 +27,7 @@ def main(prgName, argv) :
     index = prgName.rfind("\\")
     if (index > 0) :
       prgName = prgName[index+1:]
-    sSyntax = prgName + ' [-l <language>] [-a <annotator>] -i <inputfile> -o <outputfile>'
+    sSyntax = prgName + ' [-a <annotator>] -i <inputfile> -o <outputfile>'
     # get all the arguments
     try:
       # Get arguments and options
@@ -71,7 +71,7 @@ def main(prgName, argv) :
 # ----------------------------------------------------------------------------------
 def nel2folia(flInput, flOutput, sAnnotator):
   bDoAsk = False                  # Local variable
-  oConv = psd.convert(errHandle)  # Object that handles the conversion
+  oConv = convert.convert(errHandle)      # Object that handles the conversion
   arInput = []                    # Array of input files
   arOutput = []                   # Array of output files
 
@@ -97,7 +97,7 @@ def nel2folia(flInput, flOutput, sAnnotator):
           # Add this file to the list of input files
           arInput.append(os.path.normpath(flInput + "/" + flThis))
           # Add a corresponding file to the list of output files
-          arOutput.append(os.path.normpath(flOutput + "/" + os.path.splitext(os.path.basename(flThis))[0] + ".folia.xml"))
+          arOutput.append(os.path.normpath(flOutput + "/" + os.path.basename(flThis)))
     else:
       return False
     # Perform the conversion in the Conversion module

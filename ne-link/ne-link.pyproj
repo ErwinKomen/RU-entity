@@ -15,6 +15,11 @@
     <InterpreterId>{02846a6c-e004-4999-9bcd-5a209f611fde}</InterpreterId>
     <InterpreterVersion>3.5</InterpreterVersion>
     <IsWindowsApplication>False</IsWindowsApplication>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <CommandLineArguments>-a "ErwinKomen" -i "d:\data files\corpora\Dutch\Sonar\folia\WR-P-E-C_e-magazines" -o "d:\data files\corpora\Dutch\Sonar\NEL\WR-P-E-C_e-magazines"</CommandLineArguments>
+    <InterpreterArguments>
+    </InterpreterArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>

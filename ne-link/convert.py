@@ -82,8 +82,6 @@ class convert:
       iAnnotatorType = -1
       if ("annotator" in info): sAnnotator = info["annotator"]
       if ("annotatortype" in info): iAnnotatorType = getAnnotatorType(info["annotatortype"])
-      # Determine the language code according to the ethnologue
-      sEthno = self.langToEthno(sLang)
       # Set optional arguments
       kwargs = {}
       if (sAnnotator != ""):
@@ -96,15 +94,17 @@ class convert:
         sAnnotator = "nel2folia" 
 
       # Load the indicated .folia.xml INPUT document
+      self.errHandle.Status("Loading file: " + flInput )
       doc = folia.Document(file=flInput)
       # Immediately save it as the output document
+      self.errHandle.Status("Saving file: " + flOutput )
       doc.save(filename = flOutput)
 
       # Add the annotator information for this "nel2folia" conversion
       doc.declare(folia.AnnotationType.ALIGNMENT, sAnnotator+"-NEL", **kwargs)
 
       # Find and leaf through all the NER elements
-      for sentence in doc.sentences:
+      for sentence in doc.sentences():
 
           # visit the entity layer
           for layer in sentence.select(folia.EntitiesLayer):
@@ -118,12 +118,12 @@ class convert:
                   sEntity = ""
                   for word in entity.wrefs():
                       if sEntity != "": sEntity = sEntity + " "
-                      sEntity = sEntity + word
+                      sEntity = sEntity + str(word)
 
                   # We now have the whole entity and its class: add to a list of todo's
                   oEntity = {"entity": sEntity, "class": entClass}
                   # Get a list of alignments for this entity
-                  lResults = oneEntityToLinks(oEntity)
+                  lResults = self.oneEntityToLinks(oEntity)
                   # Walk the results
                   for result in lResults:
 
@@ -165,6 +165,9 @@ class convert:
 
   def oneEntityToLinks(self, oEntity):
       lResults = []
+
+      # Debugging statement
+      self.errHandle.Status(oEntity['class'] + " - " + oEntity['entity'])
 
       try:
           # Convert entity to link
