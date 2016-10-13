@@ -2,16 +2,26 @@
 # -*- coding: utf8 -*-
 
 import util
+import sys
 import os.path
 import time
 import re
 import lxml     # As used in alpino2folia.xml
+import json
+import requests
+import urllib
 # Make sure that folia is imported
 try:
   from pynlpl.formats import folia
 except:
   print("ERROR: pynlpl not found. Please obtain PyNLPL from the Python Package Manager ($ sudo easy_install pynlpl) or directly from github: $ git clone git://github.com/proycon/pynlpl.git", file=sys.stderr)
   sys.exit(2)
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
+
+SPOTLIGHT_REQUEST = "http://spotlight.sztaki.hu:2232/rest/annotate?confidence=0.35"
 
 # ----------------------------------------------------------------------------------
 # Name :    convert
@@ -168,6 +178,28 @@ class convert:
 
       # Debugging statement
       self.errHandle.Status(oEntity['class'] + " - " + oEntity['entity'])
+
+      # Try to get a link from a REST service
+      # Example: http://spotlight.sztaki.hu:2232/rest/annotate?text=panamese&confidence=0.35
+      url = SPOTLIGHT_REQUEST + '&text=' + oEntity['entity'].replace(' ', '%20')
+      
+      url = urlparse(url)
+
+      req = urllib.request.Request(url, headers={'accept':'application/json'})
+      try:
+          with urllib.request.urlopen(req) as response:
+              result = json.loads(response.readall().decode('utf-8'))
+      except:
+          description = sys.exc_info()[1]
+          self.errHandle.Status(description)      
+
+      try:
+          response = requests.get(url)
+      except:
+          self.errHandle.Status('error')
+
+      sText = response.text
+      oJson = response.json()
 
       try:
           # Convert entity to link
