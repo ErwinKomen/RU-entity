@@ -91,14 +91,20 @@ def nel2folia(flInput, flOutput, sAnnotator):
         arOutput.append(flOutput)
     elif (os.path.isdir(flInput) and os.path.isdir(flOutput)):
       # The input and output are directories: add all files in this directory
-      for flThis in os.listdir(flInput):
-        # We are expecting input files with extension .folia.xml
-        if (flThis.endswith(".folia.xml")):
-          # Add this file to the list of input files
-          arInput.append(os.path.normpath(flInput + "/" + flThis))
-          # Add a corresponding file to the list of output files
-          arOutput.append(os.path.normpath(flOutput + "/" + os.path.basename(flThis)))
+      # One directory only: for flThis in os.listdir(flInput):
+      for dirpath, dirnames, filenames in os.walk(flInput):
+        # Determine the subdirectory
+        subdir = dirpath.split(flInput, 1)[1]
+        for flThis in filenames:
+          if flThis.endswith(".folia.xml"):
+            # We are expecting input files with extension .folia.xml
+            if (flThis.endswith(".folia.xml")):
+              # Add this file to the list of input files
+              arInput.append(os.path.normpath(dirpath + "/" + flThis))
+              # Add a corresponding file to the list of output files
+              arOutput.append(os.path.normpath(flOutput + subdir + "/" + os.path.basename(flThis)))
     else:
+      errHandle.DoError("Could not find input or output. Input [{}] Output [{}]".format(flInput, flOutput))
       return False
     # Perform the conversion in the Conversion module
     for index in range(len(arInput)):

@@ -16,7 +16,7 @@
     <InterpreterVersion>3.5</InterpreterVersion>
     <IsWindowsApplication>False</IsWindowsApplication>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-a "ErwinKomen" -i "d:\data files\corpora\Dutch\Sonar\folia\WR-P-E-C_e-magazines" -o "d:\data files\corpora\Dutch\Sonar\NEL\WR-P-E-C_e-magazines"</CommandLineArguments>
+    <CommandLineArguments>-a "ErwinKomen" -i "d:\data files\corpora\Dutch\Sonar\folia" -o "d:\data files\corpora\Dutch\Sonar\NEL"</CommandLineArguments>
     <InterpreterArguments>
     </InterpreterArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
