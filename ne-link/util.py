@@ -29,12 +29,19 @@ class ErrHandle:
     self.loc_errStack.append(msg)
     # Print the error message for the user
     print("Error: "+msg+"\nSystem:", file=sys.stderr)
-    for nErr in sys.exc_info():
-      if (nErr != None):
-        print(nErr, file=sys.stderr)
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    traceback.print_exception(exc_type, exc_value, exc_traceback,
-                              limit=2, file=sys.stdout)
+
+    try:
+        # Do we actually have a real error?
+        if sys.exc_info() != None and traceback != None:
+            for nErr in sys.exc_info():
+              if (nErr != None):
+                print(nErr, file=sys.stderr)
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                                      limit=2, file=sys.stderr)
+    except:
+        print("  (no traceback)", file=sys.stderr)
+        pass
     # Is this a fatal error that requires exiting?
     if (bExit):
       sys.exit(2)
