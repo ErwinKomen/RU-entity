@@ -347,7 +347,7 @@ class convert:
                   # The result is HTML, and we are looking for an <a tag and then the href="" inside that tag
                   match = re.search(r"(href=['\"]?)([^'\"]+)", sResult)
                   if match:
-                      sHref = match.group(1)
+                      sHref = match.group(2)
                       oResult = {'Resources': [{'@URI': sHref,
                                                 '@support': '0',
                                                 '@types': '',
