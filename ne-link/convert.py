@@ -29,6 +29,10 @@ SPOTLIGHT_CONFIDENCE = "0.20"
 # Note: it is also possible to set the "support" parameter -- the number of inlinks
 #       that should minimally exist for a valid result
 
+# Set the location of the Linked Open Data Laundromat 
+# Documentation: http://lotus.lodlaundromat.org/docs
+LOTUS_REQUEST = "http://lotus.lodlaundromat.org/retrieve"
+
 # ----------------------------------------------------------------------------------
 # Name :    convert
 # Goal :    Methods to convert text files from one format to another
@@ -373,6 +377,84 @@ class convert:
       return oResult
 
   # ----------------------------------------------------------------------------------
+  # Name :    oneLotusRequest
+  # Goal :    Make an annotate or disambiguate request to the Lotus/LOD Laundromat
+  # History:
+  # 2/nov/2016    ERK Created
+  # ----------------------------------------------------------------------------------
+  def oneLotusRequest(self, oEntity, sConfidence = None):
+      oResult = {}
+      data = ""
+
+      # Prepare the request to Lotus
+      oData = {'string': oEntity['entity'],
+               'match': 'fuzzyconjunct',
+               'rank' : 'psf',
+               'langtag': 'nl'
+          }
+      data = urllib.parse.urlencode(oData).encode('ascii')
+      strUrl = LOTUS_REQUEST
+
+
+      ## POST method:
+      oPost = {'Accept':'application/json', 
+               'Content-Type': 'application/x-www-form-urlencoded'}
+      req = urllib.request.Request(strUrl, headers=oPost, data=data, method='POST')
+      
+      try:
+          # Perform the actual request to the URL
+          # POST method: 
+          with urllib.request.urlopen(req, timeout = 20) as response:
+          # GET method:
+          # with urllib.request.urlopen(req, timeout = 20) as response:
+              # Get the response as a text
+              sResult = response.read().decode('utf-8')
+              # First check the result myself
+              if sResult == "" or sResult[:1] != "{":
+                  # The result is empty, or at least not JSON
+                  oResult = {}
+              else:
+                  # Convert the response text to an object, interpreting it as JSON
+                  oResult = json.loads(sResult)
+      except urllib.error.URLError as e:
+          self.errHandle.Status('URLopen URL error: {}\n{}\ndata: {}\n url: {}\n'.format(
+              e.reason, str(sXmlPost), str(data), strUrl))
+          # Perform a text request
+          oPost['Accept'] = 'text/html'
+          req = urllib.request.Request(strUrl, headers=oPost, data=data, method='POST')
+          try:
+              with urllib.request.urlopen(req) as response:
+                  sResult = response.read().decode('utf-8')
+                  # The result is HTML, and we are looking for an <a tag and then the href="" inside that tag
+                  match = re.search(r"(href=['\"]?)([^'\"]+)", sResult)
+                  if match:
+                      sHref = match.group(2)
+                      oResult = {'Resources': [{'@URI': sHref,
+                                                '@support': '0',
+                                                '@types': '',
+                                                '@surfaceForm': '',
+                                                '@offset': '0',
+                                                '@similarityScore': '1.0',
+                                                '@percentageOfSecondRank': '0.0'}]}
+          except:
+              description = sys.exc_info()[1]
+              self.errHandle.DoError(description)      
+              return None
+      except urllib.error.HTTPError as e:
+          self.errHandle.DoError('URLopen HTTP error: {}\n{}'.format(e.code, str(sXmlPost)))
+          return None
+      except socket.timeout as e:
+          self.errHandle.DoError('URLopen timeout error: {}\n{}'.format(e.code, str(sXmlPost)))
+          return None
+      except:
+          description = sys.exc_info()[1]
+          self.errHandle.DoError(description)      
+          return None
+      # Return the JSON result object
+      return oResult
+
+
+  # ----------------------------------------------------------------------------------
   # Name :    oneEntityToLinks
   # Goal :    Get a list of possibilities to which one entity can be linked
   # History:
@@ -384,6 +466,7 @@ class convert:
       lItems = []       # List of all items: hits and failures
       iHits = 0         # Statistics: number of hits
       iFail = 0         # Statistics: number of failures
+      lMethods = ['spotlight', 'lotus']
 
       try:
           # create a resolution object
@@ -393,77 +476,87 @@ class convert:
                          'id': oEntity['id'],
                          'request': 'disambiguate' }
 
-          # Try making a disambiguation spotlight request
-          oResult = self.oneSpotlightRequest('disambiguate', oEntity, sConfidence)
-          if oResult == None or not 'Resources' in oResult:
-              # Second try: annotation request
-              oResult = self.oneSpotlightRequest('annotate', oEntity, sConfidence)
-              if oResult == None:
-                  return None
-              oResolution['request'] = 'annotate'
+          # Walk all methods
+          for sMethod in lMethods:
 
-          # Have any resources been found?
-          if 'Resources' in oResult:
-              # Walk through the list of resources returned
-              lResources = oResult['Resources']
-              for resThis in lResources:
-                  # Get the resource type
-                  resType = resThis['@types']
-                  # Double check whether the resource type matches the entity class
-                  eClass = oEntity['class']
-                  bFound = False
-                  sClassMatch = 'no'   # Does the entity class match?
-                  if eClass == 'loc' and 'Schema:Place' in resType: 
-                      # Location
-                      bFound = True
-                      sClassMatch = 'yes'
-                  elif eClass == 'org' and (':Organization' in resType or ':Organisation' in resType):
-                      # Organization
-                      bFound = True
-                      sClassMatch = 'yes'
-                  elif eClass == 'pro' and (':Language' in resType):
-                      # Product -- could be language
-                      bFound = True
-                      sClassMatch = 'yes'
-                  elif eClass == 'per' and (':Agent' in resType):
-                      # This should be a person
-                      bFound = True
-                      sClassMatch = 'yes'
-                  elif eClass == 'misc':
-                      # Miscellaneous allows all types
-                      bFound = True
-                      sClassMatch = 'misc'
-                  elif resType == '':
-                      # We have a result, but this result has no type: assume it must be okay
-                      bFound = True
-                      sClassMatch = 'empty'
-                  else:
-                      # We have something, but it's either of a different type or it doesn't match
-                      bFound = False
+              if sMethod == 'spotlight':
+                  # Try making a disambiguation SPOTLIGHT request
+                  oResult = self.oneSpotlightRequest('disambiguate', oEntity, sConfidence)
+                  if oResult == None or not 'Resources' in oResult:
+                      # Second try: annotation request
+                      oResult = self.oneSpotlightRequest('annotate', oEntity, sConfidence)
+                      if oResult == None:
+                          return None
+                      oResolution['request'] = 'annotate'
 
-                  # There is a type and it fits the class, so process it
-                  oneResult = {'uri': resThis['@URI'], 
-                              'form': resThis['@surfaceForm'],
-                              'type': resType,
-                              'classmatch': sClassMatch,
-                              'support': resThis['@support'],
-                              'offset': resThis['@offset'],
-                              'similarityScore': resThis['@similarityScore'],
-                              'percentageOfSecondRank': resThis['@percentageOfSecondRank'] }
-                  if bFound:
-                      # There is a type and it fits the class, so process it
-                      oneResult['hit'] = True
-                      lResults.append(oneResult)
-                      # Keep track of statistics
-                      iHits += 1
-                  else:
-                      # Keep track of statistics
-                      iFail += 1
-                      # Create a result object for this failure
-                      oneResult['hit'] = False
+                  # Have any resources been found?
+                  if 'Resources' in oResult:
+                      # Walk through the list of resources returned
+                      lResources = oResult['Resources']
+                      for resThis in lResources:
+                          # Get the resource type
+                          resType = resThis['@types']
+                          # Double check whether the resource type matches the entity class
+                          eClass = oEntity['class']
+                          bFound = False
+                          sClassMatch = 'no'   # Does the entity class match?
+                          if eClass == 'loc' and 'Schema:Place' in resType: 
+                              # Location
+                              bFound = True
+                              sClassMatch = 'yes'
+                          elif eClass == 'org' and (':Organization' in resType or ':Organisation' in resType):
+                              # Organization
+                              bFound = True
+                              sClassMatch = 'yes'
+                          elif eClass == 'pro' and (':Language' in resType):
+                              # Product -- could be language
+                              bFound = True
+                              sClassMatch = 'yes'
+                          elif eClass == 'per' and (':Agent' in resType):
+                              # This should be a person
+                              bFound = True
+                              sClassMatch = 'yes'
+                          elif eClass == 'misc':
+                              # Miscellaneous allows all types
+                              bFound = True
+                              sClassMatch = 'misc'
+                          elif resType == '':
+                              # We have a result, but this result has no type: assume it must be okay
+                              bFound = True
+                              sClassMatch = 'empty'
+                          else:
+                              # We have something, but it's either of a different type or it doesn't match
+                              bFound = False
+
+                          # There is a type and it fits the class, so process it
+                          oneResult = {'uri': resThis['@URI'], 
+                                      'form': resThis['@surfaceForm'],
+                                      'type': resType,
+                                      'classmatch': sClassMatch,
+                                      'support': resThis['@support'],
+                                      'offset': resThis['@offset'],
+                                      'similarityScore': resThis['@similarityScore'],
+                                      'percentageOfSecondRank': resThis['@percentageOfSecondRank'] }
+                          if bFound:
+                              # There is a type and it fits the class, so process it
+                              oneResult['hit'] = True
+                              lResults.append(oneResult)
+                              # Keep track of statistics
+                              iHits += 1
+                          else:
+                              # Keep track of statistics
+                              iFail += 1
+                              # Create a result object for this failure
+                              oneResult['hit'] = False
                  
-                  # Keep track of the result item, whether it is a hit or a failure
-                  lItems.append(oneResult)
+                          # Keep track of the result item, whether it is a hit or a failure
+                          lItems.append(oneResult)
+
+              elif sMethod == 'lotus':
+                  # Try make a LOTUS request
+                  oResult = self.oneLotusRequest(oEntity)
+
+                  # Try process the results
 
           # Add the list of items to the resolution object
           oResolution['items'] = lItems
