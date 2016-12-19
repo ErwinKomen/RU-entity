@@ -39,7 +39,7 @@ LOTUS_REQUEST = "http://lotus.lodlaundromat.org/retrieve"
 # History:
 # 28/sep/2016    ERK Created
 # ----------------------------------------------------------------------------------
-class convert:
+class broker:
   """Methods supporting named-entity linking conversion"""
   loc_arLang = ["Dutch", "German", "English", "Spanish", "French", "Welsh", "Vlaams", "Lezgi", "Lak", "Chechen"]
   loc_arEthno = ["nld", "deu", "eng", "spa", "fra", "cym", "vls", "lez", "lak", "che"]
