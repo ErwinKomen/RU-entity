@@ -21,6 +21,7 @@ errHandle = util.ErrHandle()
 def main(prgName, argv) :
     flInput = ''        # input file name
     flOutput = ''       # output file name
+    flStat = ''         # statistics file name
 
     try:
         # Adapt the program name to exclude the directory
@@ -63,13 +64,43 @@ def main(prgName, argv) :
         errHandle.DoError("main")
         return False
 
+# ----------------------------------------------------------------------------------
+# Name :    foliaselect
+# Goal :    Deal with all the requests inside the [flInput] file
+# History:
+# 20/dec/2016    ERK Created
+# ----------------------------------------------------------------------------------
 def foliaselect(flInput, flOutput, flStat):
 
     try:
         # Start a broker communication instance
-        oBroker = broker(errHandle)
+        oBroker = broker.broker(errHandle)
 
         # Read the specification of the genres and dates we are looking for
+        if not os.path.isfile(flInput):
+            # There is no valid input file
+            errHandle.DoError("Could not find input or output. Input [{}]".format(flInput))
+            return False
+        # Read the input file as JSON
+        with open(flInput, "r") as fIn:
+            oInput = json.load(fIn)
+        sDate = oInput['date']
+        # Load the collection array
+        lstCollection = oInput['collection']
+        # Walk the collections
+        for oCol in lstCollection:
+            # Treat this collection
+            sTitle = oCol['title']
+            lstGather = oCol['gather']
+            # Walk all gather elements
+            for oGather in lstGather:
+                # Get the information from this object
+                oRequest = oBroker.task2request(oGather)
+                oResponse = oBroker.request(oRequest)
+                # Interpret the response
+                if oResponse == None:
+                    errHandle.DoError("Could not get a response from the broker")
+                    return False
 
         # Return positively
         return True

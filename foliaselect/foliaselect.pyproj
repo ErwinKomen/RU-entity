@@ -14,6 +14,9 @@
     <RootNamespace>foliaselect</RootNamespace>
     <InterpreterId>{c8ba827e-2222-44b1-82bd-6fb2cff78d33}</InterpreterId>
     <InterpreterVersion>3.5</InterpreterVersion>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <CommandLineArguments>-i "d:/data files/tg/nederlab/entity/nederlab-collect.json" -o "d:/data files/tg/nederlab/entity/nederlab-teksten.json"</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
