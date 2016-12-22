@@ -7,6 +7,8 @@ Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "ne-link", "ne-link\ne-link.
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "foliaselect", "foliaselect\foliaselect.pyproj", "{73CA9A8E-66C7-40B2-8051-BCD32A5842FD}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "ne-stat", "ne-stat\ne-stat.pyproj", "{69311E05-9002-455C-A13E-D178FDFF29D9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,6 +19,8 @@ Global
 		{22DA0053-4AC3-44C1-8F7E-288335CE1060}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{73CA9A8E-66C7-40B2-8051-BCD32A5842FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{73CA9A8E-66C7-40B2-8051-BCD32A5842FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69311E05-9002-455C-A13E-D178FDFF29D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69311E05-9002-455C-A13E-D178FDFF29D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
