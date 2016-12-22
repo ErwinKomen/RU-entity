@@ -104,6 +104,7 @@ def calculate(**kwargs):
         # Keep track of statistics
         lstLogStat = []
         oLogDirStat = {}
+        oLogTotal = {}
         # Walk through all the input files
         for logfile in arInput:
             # Process this file
@@ -136,13 +137,16 @@ def calculate(**kwargs):
             else:
                 arDirs = k.split("\\")
             oItem = v
-            oItem['set'] = arDirs[-2:-1]
-            oItem['num'] = int(arDirs[-1])
-            lstLogStat.append(oItem)
+            sSet = str(arDirs[-2])
+            if not sSet in oLogTotal:
+                oLogTotal[sSet] = {}
+            # oItem['num'] = int(arDirs[-1])
+            oLogTotal[sSet][arDirs[-1]] = oItem
+            # lstLogStat.append(oItem)
 
         # Save the statistics results
         with open(flOutput, "w") as fOut:
-            json.dump(lstLogStat, fOut, indent=2)
+            json.dump(oLogTotal, fOut, indent=2)
 
         # Return positively
         return True

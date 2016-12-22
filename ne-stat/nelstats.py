@@ -66,36 +66,41 @@ class nelstats:
                 sFirstService = ""
 
                 for row in rdCsv:
-                    # Make sure we do not count doubles
-                    if not(sSentId == row[1] and sFileId == row[0] and sEntity == row[3] and sService == row[5] and sMethod == row[6]):
-                        # Check for changes in the entity
-                        if sSentId != row[1] or sFileId != row[0] or sEntity != row[3] or row[5] == sFirstService:
-                            # New entity
-                            oStats['ne'] += 1
-                            sFirstService = row[5]
-                            if bMakeLst:
-                                oStats['lst'].append({'sent': row[1], 'entity': row[3]})
+                    # Sanity check: number of columns
+                    if len(row) == 14:
+                        # Make sure we do not count doubles
+                        if not(sSentId == row[1] and sFileId == row[0] and sEntity == row[3] and sService == row[5] and sMethod == row[6]):
+                            # Check for changes in the entity
+                            if sSentId != row[1] or sFileId != row[0] or sEntity != row[3] or row[5] == sFirstService:
+                                # New entity
+                                oStats['ne'] += 1
+                                try:
+                                    sFirstService = row[5]
+                                except:
+                                    iStop = 1
+                                if bMakeLst:
+                                    oStats['lst'].append({'sent': row[1], 'entity': row[3]})
 
-                        # Make sure this service is in the 'oHits'
-                        sThisService = row[5]
-                        if sThisService == "":
-                            # Do not account for 'empty' services
-                            iStop = 1
-                        else:
-                            if not sThisService in oStats: oStats[sThisService] = {'hit': 0, 'fail': 0}
-                            # Keep track of the frequencies for this service
-                            bHit = (row[4] == 'true')
-                            if bHit:
-                                oStats[sThisService]['hit'] += 1
+                            # Make sure this service is in the 'oHits'
+                            sThisService = row[5]
+                            if sThisService == "":
+                                # Do not account for 'empty' services
+                                iStop = 1
                             else:
-                                oStats[sThisService]['fail'] += 1
+                                if not sThisService in oStats: oStats[sThisService] = {'hit': 0, 'fail': 0}
+                                # Keep track of the frequencies for this service
+                                bHit = (row[4] == 'true')
+                                if bHit:
+                                    oStats[sThisService]['hit'] += 1
+                                else:
+                                    oStats[sThisService]['fail'] += 1
 
-                    # Bookkeeping
-                    sFileId = row[0]
-                    sSentId = row[1]
-                    sEntity = row[3]
-                    sService = row[5]
-                    sMethod = row[6]
+                        # Bookkeeping
+                        sFileId = row[0]
+                        sSentId = row[1]
+                        sEntity = row[3]
+                        sService = row[5]
+                        sMethod = row[6]
 
             # Return the results
             return oStats
