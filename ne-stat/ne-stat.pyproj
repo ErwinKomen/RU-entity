@@ -15,7 +15,7 @@
     <InterpreterId>{c695b917-5fba-4e59-954c-7887782fed34}</InterpreterId>
     <InterpreterVersion>3.5</InterpreterVersion>
     <LaunchProvider>Standard Python launcher</LaunchProvider>
-    <CommandLineArguments>-i "d:/data files/tg/nederlab/entity/nederlab_out/" -o "d:/data files/tg/nederlab/entity/tmp-stats.json"</CommandLineArguments>
+    <CommandLineArguments>-i "d:/data files/tg/nederlab/entity/nederlab_out/" -o "d:/data files/tg/nederlab/entity/tmp-stats.json" -g "d:/data files/tg/nederlab/entity/nederlab-collect.json"</CommandLineArguments>
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

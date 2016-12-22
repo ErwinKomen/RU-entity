@@ -21,6 +21,7 @@ errHandle = util.ErrHandle()
 def main(prgName, argv) :
     flInput = ''        # input file name
     flOutput = ''       # output file name
+    flGather = ''       # JSON file describing the set 
     sMethod = ''        # Method to be used
 
     try:
@@ -28,11 +29,11 @@ def main(prgName, argv) :
         index = prgName.rfind("\\")
         if (index > 0) :
             prgName = prgName[index+1:]
-        sSyntax = prgName + ' -i <inputfile/dir> -o <outputfile/dir>'
+        sSyntax = prgName + ' -i <inputfile/dir> -o <outputfile/dir> -g <gatherfile>'
         # get all the arguments
         try:
             # Get arguments and options
-            opts, args = getopt.getopt(argv, "hi:o:m:", ["-inputfile=","-outputfile=", "-method="])
+            opts, args = getopt.getopt(argv, "hi:o:g:m:", ["-inputfile=","-outputfile=", "-gatherfile=", "-method="])
         except getopt.GetoptError:
               print(sSyntax)
               sys.exit(2)
@@ -45,6 +46,8 @@ def main(prgName, argv) :
                 flInput = arg
             elif opt in ("-o", "--ofile"):
                 flOutput = arg
+            elif opt in ("-g", "--gfile"):
+                flGather = arg
             elif opt in ("-m", "--method"):
                 sMethod = arg
         # Check if all arguments are there
@@ -53,8 +56,9 @@ def main(prgName, argv) :
         # Continue with the program
         errHandle.Status('Input is "' + flInput + '"')
         errHandle.Status('Output is "' + flOutput + '"')
+        errHandle.Status('Gather is "' + flGather + '"')
         # Call the function that converst input into output
-        kwargs = {"input": flInput, "output": flOutput}
+        kwargs = {"input": flInput, "output": flOutput, "gather": flGather}
         if sMethod != '':
             kwargs['method'] = sMethod
         if (calculate(**kwargs)) :
@@ -76,10 +80,11 @@ def calculate(**kwargs):
 
     try:
         # Check
-        if not "input" in kwargs or not "output" in kwargs: return False
+        if not "input" in kwargs or not "output" in kwargs or not "gather" in kwargs: return False
         # Get the obligatory parameters from the kwargs
         flInput = kwargs['input']
         flOutput = kwargs['output']
+        flGather = kwargs['gather']
         sMethod = ''
         if "method" in kwargs: sMethod = kwargs['method']
         arInput = []        # List of input files
@@ -130,6 +135,10 @@ def calculate(**kwargs):
                                 oTmp[k]['fail'] += v['fail']
                     oLogDirStat[sDir] = oTmp
 
+        # Read the gather file
+        with open(flGather, "r") as fGat:
+            oCollect = json.load(fGat)
+
         # Disambiguate the statistics
         for (k,v) in oLogDirStat.items():
             if "/" in k:
@@ -138,15 +147,28 @@ def calculate(**kwargs):
                 arDirs = k.split("\\")
             oItem = v
             sSet = str(arDirs[-2])
+            iGat = arDirs[-1]
             if not sSet in oLogTotal:
                 oLogTotal[sSet] = {}
-            # oItem['num'] = int(arDirs[-1])
-            oLogTotal[sSet][arDirs[-1]] = oItem
-            # lstLogStat.append(oItem)
+            # Find the section in the gather file
+            for g in oCollect['collection']:
+                if g['dir'] == sSet:
+                    lGather = g['gather']
+                    oGather = lGather[int(iGat)]
+                    for (p,q) in oGather.items():
+                        oItem[p] = q
+                    iSpotPtc = 100 * oItem['spotlight']['hit'] / oItem['ne']
+                    oGather['spotptc'] = iSpotPtc
+                    # oItem['num'] = int(arDirs[-1])
+                    oLogTotal[sSet][iGat] = oItem
+                    # lstLogStat.append(oItem)
 
         # Save the statistics results
         with open(flOutput, "w") as fOut:
             json.dump(oLogTotal, fOut, indent=2)
+        # Save the adapted collect
+        with open(flOutput.replace(".json", "-collect.json"), "w") as fOut:
+            json.dump(oCollect, fOut, indent = 2)
 
         # Return positively
         return True
