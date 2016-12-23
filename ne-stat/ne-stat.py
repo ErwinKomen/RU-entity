@@ -8,6 +8,7 @@ import sys, getopt, os.path, importlib
 import util
 import nelstats
 import json
+import csv
 
 # ============================= LOCAL VARIABLES ====================================
 errHandle = util.ErrHandle()
@@ -133,13 +134,20 @@ def calculate(**kwargs):
                             else:
                                 oTmp[k]['hit'] += v['hit']
                                 oTmp[k]['fail'] += v['fail']
+                    # Keep track of the number of documents
+                    if not 'docs' in oTmp: oTmp['docs'] = 0
+                    oTmp['docs'] += 1
+                    # Put the stuff back
                     oLogDirStat[sDir] = oTmp
 
         # Read the gather file
         with open(flGather, "r") as fGat:
             oCollect = json.load(fGat)
 
-        # Disambiguate the statistics
+        # Disambiguate the statistics that have just been created in [oLogDirStat]
+        #   Then combine results in:
+        #   1) oLogTotal - 
+        #   2) oCollect  - 
         for (k,v) in oLogDirStat.items():
             if "/" in k:
                 arDirs = k.split("/")
@@ -150,6 +158,9 @@ def calculate(**kwargs):
             iGat = arDirs[-1]
             if not sSet in oLogTotal:
                 oLogTotal[sSet] = {}
+            # Create an object with the services used in this Set
+            oLogTotal[sSet]['services'] = []
+            oLogTotal[sSet]['ptc'] = []
             # Find the section in the gather file
             for g in oCollect['collection']:
                 if g['dir'] == sSet:
@@ -157,11 +168,72 @@ def calculate(**kwargs):
                     oGather = lGather[int(iGat)]
                     for (p,q) in oGather.items():
                         oItem[p] = q
-                    iSpotPtc = 100 * oItem['spotlight']['hit'] / oItem['ne']
-                    oGather['spotptc'] = iSpotPtc
+
+                    # what is the number of named entities here?
+                    iNE = oItem['ne']
+                    # Visit all the services
+                    for (keyService, oService) in oItem.items():
+                        if isinstance(oService, dict) and 'hit' in oService:
+                            # This really is a service
+                            iPtc = 100 * oService['hit'] / iNE
+                            oGather[keyService+'_ptc'] = iPtc
+                            # Find out which row it is in the 'services' array
+                            if not keyService in oLogTotal[sSet]['services']:
+                                # Add it to the services
+                                oLogTotal[sSet]['services'].append(keyService)
+                            iServiceRow = oLogTotal[sSet]['services'].index(keyService)
+
                     # oItem['num'] = int(arDirs[-1])
                     oLogTotal[sSet][iGat] = oItem
-                    # lstLogStat.append(oItem)
+
+        # Try to extract information from oLogTotal to make a CSV file
+        oCsv = {}
+        for (sSet,oSet) in oLogTotal.items():
+            lRows = []
+            # First row contains column information
+            oRow = ['set', 'genre', 'start', 'docs', 'ne']
+            # Add one column header for each service
+            for sThis in oSet['services']: oRow.append(sThis)
+            # Add this row to the list of rows
+            lRows.append(oRow)
+            # Walk all the elements of this set
+            for (sKey, oItem) in oSet.items():
+                if str(sKey) != 'services' and str(sKey) != 'ptc':
+                    # Start a new ro
+                    oRow = [sSet]
+                    # Get the standard information from this row
+                    try:
+                        oRow.append(oItem['genre'])
+                    except:
+                        iStop = 1
+                    oRow.append(oItem['start'])
+                    if 'docs' in oItem:
+                        oRow.append(oItem['docs'])
+                    else:
+                        oRow.append(0)
+                    if 'ne' in oItem:
+                        oRow.append(oItem['ne'])
+                    else:
+                        oRow.append(0)
+                    # Walk all the services
+                    for sThis in oSet['services']: 
+                        # See if this service is represented
+                        if sThis in oItem:
+                            # Add this count of hits
+                            oRow.append(oItem[sThis]['hit'])
+                        else:
+                            # Not represented: count = 0
+                            oRow.append(0)
+                    # Add the row to the list
+                    lRows.append(oRow)
+            # Combine into oCsv
+            oCsv[sSet] = lRows
+            with open(flOutput.replace(".json", "_"+sSet+".csv"), "w") as csvfile:
+                wOut = csv.writer(csvfile, delimiter='\t')
+                for oRow in lRows:
+                    wOut.writerow(oRow)
+
+
 
         # Save the statistics results
         with open(flOutput, "w") as fOut:
@@ -169,6 +241,10 @@ def calculate(**kwargs):
         # Save the adapted collect
         with open(flOutput.replace(".json", "-collect.json"), "w") as fOut:
             json.dump(oCollect, fOut, indent = 2)
+
+        # Save a CSV file
+        with open(flOutput.replace(".json", "_csv.json"), "w") as fOut:
+            json.dump(oCsv, fOut, indent = 2)
 
         # Return positively
         return True
