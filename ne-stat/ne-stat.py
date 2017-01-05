@@ -243,7 +243,24 @@ def calculate(**kwargs):
                         else:
                             oRow.append(0)
                         if 'ne' in oItem:
-                            oRow.append(oItem['ne'])
+                            # Do we need tot TOTAL number of named-entities?
+                            if sNEtype == "":
+                                oRow.append(oItem['ne'])
+                            else:
+                                # No, we need the number of named-entities for one particular kind
+                                iService = 0
+                                while oSet['services'][iService] not in oItem:
+                                    iService+= 1
+                                if oSet['services'][iService] in oItem:
+                                    oFirstServiceItem = oItem[oSet['services'][iService]]
+                                else:
+                                    iStop = 1
+                                if sNEtype in oFirstServiceItem:
+                                    iNEtypeTotal = oFirstServiceItem[sNEtype]['hit'] + oFirstServiceItem[sNEtype]['fail']
+                                    oRow.append(iNEtypeTotal)
+                                else:
+                                    # There are no hits for this NE-type
+                                    oRow.append(0)
                         else:
                             oRow.append(0)
                         # Walk all the services
