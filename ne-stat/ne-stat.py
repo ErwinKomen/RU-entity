@@ -60,14 +60,20 @@ def main(prgName, argv) :
         errHandle.Status('Gather is "' + flGather + '"')
         # Call the function that converst input into output
         kwargs = {"input": flInput, "output": flOutput, "gather": flGather}
+        # possibly add a method
         if sMethod != '':
             kwargs['method'] = sMethod
+
+        # Call the 'calculate' function with all the arguments we have collected
         if (calculate(**kwargs)) :
+            # Finish nicely
             errHandle.Status("Ready")
         else :
-            errHandle.DoError("Could not complete")    
+            # Finish with an error message
+            errHandle.DoError("Could not complete")   
+        return  True
     except:
-        # act
+        # Show the error to the user
         errHandle.DoError("main")
         return False
 
@@ -93,7 +99,7 @@ def calculate(**kwargs):
         # Open a statistics object
         oStat = nelstats.nelstats(errHandle)
 
-        # Read the specification of the genres and dates we are looking for
+        # Gather a list of .folia.log input files
         if os.path.isdir(flInput):
             # Input is a directory
             for root, dirs, files in os.walk(flInput):
@@ -111,9 +117,11 @@ def calculate(**kwargs):
         lstLogStat = []
         oLogDirStat = {}
         oLogTotal = {}
+        lstNeType = []
+        lstNeType.append('')
         # Walk through all the input files
         for logfile in arInput:
-            # Process this file
+            # Process this file: get a 'statistics' (counting) object for it
             oLogStat = oStat.treat(logfile)
             if oLogStat == None:
                 # Did not receive a reply
@@ -132,15 +140,35 @@ def calculate(**kwargs):
                             if not k in oTmp:
                                 oTmp[k] = v
                             else:
-                                oTmp[k]['hit'] += v['hit']
-                                oTmp[k]['fail'] += v['fail']
+                                #oTmp[k]['hit'] += v['hit']
+                                #oTmp[k]['fail'] += v['fail']
+                                # Iterate over the elements in [v]
+                                for (m,el) in v.items():
+                                    # Check if this item is numeric
+                                    if str(el).isnumeric():
+                                        # Make sure the element exists within oTmp[k]
+                                        if not m in oTmp[k]:
+                                            # Initialize it
+                                            oTmp[k][m] = el
+                                        else:
+                                            # Add it to the existing one
+                                            oTmp[k][m] += el
+                                    else:
+                                        # The element is an object -- this can only be a hit/fail count object...
+                                        # Make sure this object is initialized
+                                        if not m in oTmp[k]: oTmp[k][m] = {'hit': 0, 'fail': 0}
+                                        if not m in lstNeType: lstNeType.append(m)
+                                        # Add to the object elements
+                                        oTmp[k][m]['hit'] += el['hit']
+                                        oTmp[k][m]['fail'] += el['fail']
+
                     # Keep track of the number of documents
                     if not 'docs' in oTmp: oTmp['docs'] = 0
                     oTmp['docs'] += 1
                     # Put the stuff back
                     oLogDirStat[sDir] = oTmp
 
-        # Read the gather file
+        # Read the 'gather' file: this specifies
         with open(flGather, "r") as fGat:
             oCollect = json.load(fGat)
 
@@ -161,6 +189,8 @@ def calculate(**kwargs):
             # Create an object with the services used in this Set
             oLogTotal[sSet]['services'] = []
             oLogTotal[sSet]['ptc'] = []
+            ## And an object with the named-entity types
+            #oLogTotal[sSet]['ne-types'] = []
             # Find the section in the gather file
             for g in oCollect['collection']:
                 if g['dir'] == sSet:
@@ -186,52 +216,65 @@ def calculate(**kwargs):
                     # oItem['num'] = int(arDirs[-1])
                     oLogTotal[sSet][iGat] = oItem
 
-        # Try to extract information from oLogTotal to make a CSV file
-        oCsv = {}
-        for (sSet,oSet) in oLogTotal.items():
-            lRows = []
-            # First row contains column information
-            oRow = ['set', 'genre', 'start', 'docs', 'ne']
-            # Add one column header for each service
-            for sThis in oSet['services']: oRow.append(sThis)
-            # Add this row to the list of rows
-            lRows.append(oRow)
-            # Walk all the elements of this set
-            for (sKey, oItem) in oSet.items():
-                if str(sKey) != 'services' and str(sKey) != 'ptc':
-                    # Start a new ro
-                    oRow = [sSet]
-                    # Get the standard information from this row
-                    try:
-                        oRow.append(oItem['genre'])
-                    except:
-                        iStop = 1
-                    oRow.append(oItem['start'])
-                    if 'docs' in oItem:
-                        oRow.append(oItem['docs'])
-                    else:
-                        oRow.append(0)
-                    if 'ne' in oItem:
-                        oRow.append(oItem['ne'])
-                    else:
-                        oRow.append(0)
-                    # Walk all the services
-                    for sThis in oSet['services']: 
-                        # See if this service is represented
-                        if sThis in oItem:
-                            # Add this count of hits
-                            oRow.append(oItem[sThis]['hit'])
+        # Try to extract information from oLogTotal to make one CSV file per NE-type
+        for sNEtype in lstNeType:
+            oCsv = {}
+            for (sSet,oSet) in oLogTotal.items():
+                lRows = []
+                # First row contains column information
+                oRow = ['set', 'genre', 'start', 'docs', 'ne']
+                # Add one column header for each service
+                for sThis in oSet['services']: oRow.append(sThis)
+                # Add this row to the list of rows
+                lRows.append(oRow)
+                # Walk all the elements of this set
+                for (sKey, oItem) in oSet.items():
+                    if str(sKey) != 'services' and str(sKey) != 'ptc':
+                        # Start a new ro
+                        oRow = [sSet]
+                        # Get the standard information from this row
+                        try:
+                            oRow.append(oItem['genre'])
+                        except:
+                            iStop = 1
+                        oRow.append(oItem['start'])
+                        if 'docs' in oItem:
+                            oRow.append(oItem['docs'])
                         else:
-                            # Not represented: count = 0
                             oRow.append(0)
-                    # Add the row to the list
-                    lRows.append(oRow)
-            # Combine into oCsv
-            oCsv[sSet] = lRows
-            with open(flOutput.replace(".json", "_"+sSet+".csv"), "w") as csvfile:
-                wOut = csv.writer(csvfile, delimiter='\t')
-                for oRow in lRows:
-                    wOut.writerow(oRow)
+                        if 'ne' in oItem:
+                            oRow.append(oItem['ne'])
+                        else:
+                            oRow.append(0)
+                        # Walk all the services
+                        for sThis in oSet['services']: 
+                            # See if this service is represented
+                            if sThis in oItem:
+                                # Add this count of hits -- depending on the NE type
+                                if sNEtype == "":
+                                    # Take the overall number of hits for this service
+                                    oRow.append(oItem[sThis]['hit'])
+                                elif sNEtype in oItem[sThis]:
+                                    # Take the number of hits for this service/NE-type combi
+                                    oRow.append(oItem[sThis][sNEtype]['hit'])
+                                else:
+                                    # There are no hits for this service/NE-type combination
+                                    oRow.append(0)
+                            else:
+                                # Not represented: count = 0
+                                oRow.append(0)
+                        # Add the row to the list
+                        lRows.append(oRow)
+                # Combine into oCsv
+                oCsv[sSet] = lRows
+                if sNEtype == "":
+                    fCsvFileName = flOutput.replace(".json", "_"+sSet+".csv")
+                else:
+                    fCsvFileName = flOutput.replace(".json", "_"+sSet+"_"+sNEtype+".csv")
+                with open(fCsvFileName, "w") as csvfile:
+                    wOut = csv.writer(csvfile, delimiter='\t')
+                    for oRow in lRows:
+                        wOut.writerow(oRow)
 
 
 

@@ -45,7 +45,7 @@ class nelstats:
                 # Row division:
                 # 0  File
                 # 1  sentId
-                # 2  type
+                # 2  type of named-entity: 'per', 'loc', 'misc', 'org', 'pro' and so forth
                 # 3  Named-Entity
                 # 4  hit
                 # 5  Service
@@ -87,13 +87,23 @@ class nelstats:
                                 # Do not account for 'empty' services
                                 iStop = 1
                             else:
+                                # Make sure the 'overall' counting elements are there
                                 if not sThisService in oStats: oStats[sThisService] = {'hit': 0, 'fail': 0}
+                                # Make sure the 'NE-type-specific' counting elements are there
+                                sNEtype = row[2]
+                                if not sNEtype in oStats[sThisService]: oStats[sThisService][sNEtype] =  {'hit': 0, 'fail': 0}
                                 # Keep track of the frequencies for this service
                                 bHit = (row[4] == 'true')
                                 if bHit:
+                                    # Add to the 'overall' count of hits for this service
                                     oStats[sThisService]['hit'] += 1
+                                    # Add to the NE-type-specific count of hits for this service
+                                    oStats[sThisService][sNEtype]['hit'] += 1
                                 else:
+                                    # Add to the 'overall' count of fails for this service
                                     oStats[sThisService]['fail'] += 1
+                                    # Add to the NE-type-specific count of fails for this service
+                                    oStats[sThisService][sNEtype]['fail'] += 1
 
                         # Bookkeeping
                         sFileId = row[0]
